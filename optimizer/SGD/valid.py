@@ -13,16 +13,24 @@ class MyModule(torch.nn.Module):
 
 
 class MySGD:
-    def __init__(self, mu, lr):
+    def __init__(self, mu, lr, dampening=0, weight_decay=0, nesterov=False):
         self.mu = mu
         self.lr = lr
         self.v = None
+        self.dampening = dampening
+        self.weight_decay = weight_decay
+        self.nesterov = nesterov
 
     def get_res(self, p, g):  # where p is p_i, g is g{i+1}
+        if self.weight_decay != 0:  # add weight_decay
+            g = g + self.weight_decay * p
         if self.v is None:
             self.v = g  # get v_0
         else:
-            self.v = self.mu * self.v + g  # v_{i+1} = \mu * v_t + g{i+1}
+            self.v = self.mu * self.v + g * (1-self.dampening)  # v_{i+1} = \mu * v_t + g{i+1} * (1-dampening)
+        if self.nesterov:
+            nest = g + self.mu * self.v
+            return p - self.lr * nest
         return p - self.lr * self.v  # p_{i+1} = p_i - \mu * v_{i+1}
 
 
@@ -34,18 +42,23 @@ def get_train_data():
 
 config = {
     'seed': 0,
-    'lr': 1e-2,
-    'momentum': 0.4,
+    'lr': 1e-4,
+    'momentum': 0.5,
     'epoch': 200,
     'eps': 1e-7,
+    'dampening': 0,
+    'weight_decay': 0,
+    'nesterov': True
 }
 
 
 if __name__ == "__main__":
     torch.manual_seed(config['seed'])
     model = MyModule()
-    optimizer_torch = torch.optim.SGD(model.parameters(), lr=config['lr'], momentum=config['momentum'])
-    optimizer_mine = MySGD(config['momentum'], config['lr'])
+    optimizer_torch = torch.optim.SGD(model.parameters(), lr=config['lr'], momentum=config['momentum'], dampening=config['dampening'], weight_decay=config['weight_decay'], nesterov=config['nesterov'])
+    optimizer_mine = MySGD(config['momentum'], config['lr'], dampening=config['dampening'], weight_decay=config['weight_decay'], nesterov=config['nesterov'])
+    # optimizer_mine.v = torch.tensor([-84.4419, 0., 0.])
+    # print(optimizer_mine.get_res(torch.tensor([127.1993, -0.8230, -0.7359]), torch.tensor([84720304., 0., 0.])))
     x1, y_real = get_train_data()
     for epoch in range(config['epoch']):
         y_pred = model(x1)
