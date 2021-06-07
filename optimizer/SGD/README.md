@@ -13,9 +13,6 @@ SGD中的dampening参数, 即把公式改成, 但是$v_0$任然是$g_0$不变
 $$v_{t+1} = \mu * v_{t} + (1-dampening)*g_{t+1}$$
 $$p_{t+1} = p_{t} - \text{lr} * v_{t+1}$$
 为什么弄成1-dampening而不是直接dampening? 不明白。
-### weight_decay
-在计算每步的grad的时候, g = g + weight_decay * p.
-似乎是为了防止过拟合。不太懂.
 ### nesterov
 在计算每步的更新步长的时候考虑当前状态的梯度grad
 ## 理解
